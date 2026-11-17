@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompt Vault – Live Demo</title>
+  <meta name="description" content="Live demo of Prompt Vault, a Manifest V3 Chrome extension to save, organize, search and copy AI prompts.">
+  <link rel="icon" href="icons/icon32.png">
+  <style>
+    :root {
+      --bg: #0d0f15;
+      --panel: #151821;
+      --panel-2: #1c2030;
+      --border: #2a2f3e;
+      --text: #e6e8ef;
+      --muted: #9aa1b6;
+      --accent: #7c8cff;
+      --accent-2: #b38cff;
+      --accent-text: #0d0f15;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 600px at 85% 10%, rgba(124, 140, 255, 0.22), transparent 60%),
+        radial-gradient(700px 500px at 0% 100%, rgba(179, 140, 255, 0.14), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", sans-serif;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 48px 24px 64px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 56px;
+      align-items: start;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .brand img { width: 44px; height: 44px; }
+    .brand span { font-weight: 600; color: #a7b0ff; letter-spacing: 0.04em; font-size: 14px; }
+
+    h1 { font-size: 44px; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 16px; }
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, #8d9bff, #c3a0ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lead { color: var(--muted); font-size: 18px; max-width: 520px; margin-bottom: 32px; }
+
+    .controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
+    .control-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .control-label { width: 84px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .segmented {
+      display: inline-flex;
+      padding: 4px;
+      gap: 4px;
+      border-radius: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+
+    .segmented button, .reset {
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      border: 0;
+      cursor: pointer;
+      border-radius: 7px;
+      padding: 7px 16px;
+      background: transparent;
+      color: var(--muted);
+      transition: background 160ms ease, color 160ms ease;
+    }
+
+    .segmented button:hover { color: var(--text); }
+    .segmented button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+
+    .reset { background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+    .reset:hover { background: var(--panel-2); }
+
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .try { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; max-width: 520px; }
+    .try h2 { font-size: 15px; margin-bottom: 10px; }
+    .try ul { list-style: none; display: grid; gap: 8px; }
+    .try li { color: var(--muted); font-size: 15px; padding-inline-start: 22px; position: relative; }
+    .try li::before { content: "✦"; position: absolute; inset-inline-start: 0; color: var(--accent); font-size: 12px; top: 3px; }
+    .try kbd {
+      font-family: inherit; font-size: 12px; padding: 1px 7px; border-radius: 5px;
+      border: 1px solid var(--border); border-bottom-width: 2px; background: var(--panel-2); color: var(--text);
+    }
+
+    .note { margin-top: 18px; font-size: 13px; color: var(--muted); max-width: 520px; }
+
+    /* ---------- Mock browser ---------- */
+    .browser {
+      width: 460px;
+      border-radius: 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dots { display: flex; gap: 6px; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: #3a3f50; display: block; }
+
+    .address {
+      flex: 1;
+      height: 26px;
+      border-radius: 13px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .ext-icon {
+      width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center;
+      background: rgba(124, 140, 255, 0.18); box-shadow: 0 0 0 2px var(--accent);
+    }
+    .ext-icon img { width: 18px; height: 18px; }
+
+    .popup-area { padding: 14px 30px 30px; display: flex; justify-content: flex-end; }
+
+    .popup-sizer {
+      position: relative;
+      width: 400px;
+      max-width: 100%;
+      height: 580px;
+      flex-shrink: 0;
+    }
+
+    .popup-frame-wrap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 400px;
+      height: 580px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      transform-origin: top left;
+    }
+
+    iframe { display: block; width: 400px; height: 580px; border: 0; background: #0f1117; }
+
+    @media (max-width: 980px) {
+      .page { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-top: 32px; }
+      .demo { justify-self: center; min-width: 0; max-width: 100%; }
+      h1 { font-size: 34px; }
+    }
+
+    @media (max-width: 520px) {
+      .page { padding: 24px 16px 48px; }
+      .demo { width: 100%; }
+      .browser { width: 100%; }
+      .toolbar .dots { display: none; }
+      .popup-area { padding: 12px; justify-content: center; }
+      .control-label { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section>
+      <div class="brand"><img src="icons/icon48.png" alt=""><span>PROMPT VAULT · LIVE DEMO</span></div>
+      <h1>Your AI prompts,<br><em>one click away.</em></h1>
+      <p class="lead">This is the real extension popup running in your browser. Add, search, filter, edit and copy prompts exactly as you would after installing it in Chrome.</p>
+
+      <div class="controls">
+        <div class="control-row">
+          <span class="control-label">Language</span>
+          <div class="segmented" role="group" aria-label="Language">
+            <button type="button" data-lang="en" aria-pressed="true">English</button>
+            <button type="button" data-lang="ar" aria-pressed="false" lang="ar">العربية</button>
+          </div>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Theme</span>
+          <div class="segmented" role="group" aria-label="Theme">
+            <button type="button" data-theme="dark" aria-pressed="true">Dark</button>
+            <button type="button" data-theme="light" aria-pressed="false">Light</button>
+          </div>
+          <button type="button" class="reset" id="resetBtn">Reset demo data</button>
+        </div>
+      </div>
+
+      <div class="try">
+        <h2>Things to try</h2>
+        <ul>
+          <li>Click <strong>Copy</strong> on any card, then paste anywhere</li>
+          <li>Type in the search box, or press <kbd>/</kbd> to jump to it</li>
+          <li>Click a category chip to filter</li>
+          <li>Click <strong>+ New</strong> to add a prompt, save with <kbd>Ctrl</kbd> + <kbd>Enter</kbd></li>
+          <li>Switch to العربية to see the full right-to-left layout</li>
+        </ul>
+      </div>
+      <p class="note">In the demo, data is kept in this browser only. In the extension it is stored with chrome.storage.local and never leaves the device.</p>
+    </section>
+
+    <section class="demo" aria-label="Extension popup demo">
+      <div class="browser">
+        <div class="toolbar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="address">chatgpt.com</div>
+          <div class="ext-icon" title="Prompt Vault"><img src="icons/icon32.png" alt="Prompt Vault"></div>
+        </div>
+        <div class="popup-area">
+          <div class="popup-sizer" id="popupSizer">
+            <div class="popup-frame-wrap" id="frameWrap">
+              <iframe id="popupFrame" title="Prompt Vault popup" allow="clipboard-write; clipboard-read"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="demo.js"></script>
+</body>
+</html>
